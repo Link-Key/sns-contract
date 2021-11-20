@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.peifeng.be.mapper.RobotAccountMapper">
+  <resultMap id="BaseResultMap" type="com.peifeng.be.model.RobotAccount">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="mnemonic_code" jdbcType="VARCHAR" property="mnemonicCode" />
+    <result column="address" jdbcType="VARCHAR" property="address" />
+    <result column="private_key" jdbcType="VARCHAR" property="privateKey" />
+    <result column="public_key" jdbcType="VARCHAR" property="publicKey" />
+  </resultMap>
+  <sql id="Example_Where_Clause">
+    <where>
+      <foreach collection="oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Base_Column_List">
+    id, mnemonic_code, address, private_key, public_key
+  </sql>
+  <select id="selectByExample" parameterType="com.peifeng.be.model.RobotAccountExample" resultMap="BaseResultMap">
+    select
+    <if test="distinct">
+      distinct
+    </if>
+    <include refid="Base_Column_List" />
+    from robot_account
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+    <if test="orderByClause != null">
+      order by ${orderByClause}
+    </if>
+  </select>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from robot_account
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <select id="robotAccountCount" resultType="java.lang.Integer">
+    SELECT COUNT(id) FROM robot_account
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from robot_account
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <delete id="batchDelete" parameterType="java.util.List">
+    delete from robot_account
+    where id IN
+    <foreach close=")" collection="ids" item="item" open="(" separator=",">
+      #{item}
+    </foreach>
+  </delete>
+  <insert id="insert" parameterType="com.peifeng.be.model.RobotAccount">
+    insert into robot_account (id, mnemonic_code, address, 
+      private_key, public_key)
+    values (#{id,jdbcType=INTEGER}, #{mnemonicCode,jdbcType=VARCHAR}, #{address,jdbcType=VARCHAR}, 
+      #{privateKey,jdbcType=VARCHAR}, #{publicKey,jdbcType=VARCHAR})
+  </insert>
+  <insert id="insertSelective" parameterType="com.peifeng.be.model.RobotAccount">
+    insert into robot_account
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="mnemonicCode != null">
+        mnemonic_code,
+      </if>
+      <if test="address != null">
+        address,
+      </if>
+      <if test="privateKey != null">
+        private_key,
+      </if>
+      <if test="publicKey != null">
+        public_key,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="mnemonicCode != null">
+        #{mnemonicCode,jdbcType=VARCHAR},
+      </if>
+      <if test="address != null">
+        #{address,jdbcType=VARCHAR},
+      </if>
+      <if test="privateKey != null">
+        #{privateKey,jdbcType=VARCHAR},
+      </if>
+      <if test="publicKey != null">
+        #{publicKey,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <insert id="batchInsert" parameterType="java.util.List">
+    INSERT INTO robot_account
+    (id, mnemonic_code, address,
+    private_key, public_key,lssued)
+    VALUES
+    <foreach collection="robotAccounts" item="item" separator=",">
+      (#{item.id,jdbcType=INTEGER}, #{item.mnemonicCode,jdbcType=VARCHAR}, #{item.address,jdbcType=VARCHAR},
+      #{item.privateKey,jdbcType=VARCHAR}, #{item.publicKey,jdbcType=VARCHAR},#{item.lssued,jdbcType=BIT})
+    </foreach>
+  </insert>
+
+  <select id="countByExample" parameterType="com.peifeng.be.model.RobotAccountExample" resultType="java.lang.Integer">
+    select count(*) from robot_account
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </select>
+  <update id="updateByPrimaryKeySelective" parameterType="com.peifeng.be.model.RobotAccount">
+    update robot_account
+    <set>
+      <if test="mnemonicCode != null">
+        mnemonic_code = #{mnemonicCode,jdbcType=VARCHAR},
+      </if>
+      <if test="address != null">
+        address = #{address,jdbcType=VARCHAR},
+      </if>
+      <if test="privateKey != null">
+        private_key = #{privateKey,jdbcType=VARCHAR},
+      </if>
+      <if test="publicKey != null">
+        public_key = #{publicKey,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.peifeng.be.model.RobotAccount">
+    update robot_account
+    set mnemonic_code = #{mnemonicCode,jdbcType=VARCHAR},
+      address = #{address,jdbcType=VARCHAR},
+      private_key = #{privateKey,jdbcType=VARCHAR},
+      public_key = #{publicKey,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+
+  <update id="batchUpdate" parameterType="java.util.List">
+    update robot_account t
+    set lssued = true
+    where t.address in
+    <foreach collection="accountLists" item="item" separator=","  open="(" close=")">
+      #{item}
+    </foreach>
+  </update>
+</mapper>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.peifeng.be.mapper.ContractMapper" >
+  <resultMap id="BaseResultMap" type="com.peifeng.be.model.Contract" >
+    <id column="address" property="address" jdbcType="VARCHAR" />
+  </resultMap>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String" >
+    delete from contract
+    where address = #{address,jdbcType=VARCHAR}
+  </delete>
+  <insert id="insert" parameterType="com.peifeng.be.model.Contract" >
+    insert into contract (address)
+    values (#{address,jdbcType=VARCHAR})
+  </insert>
+  <insert id="insertSelective" parameterType="com.peifeng.be.model.Contract" >
+    insert into contract
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="address != null" >
+        address,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="address != null" >
+        #{address,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <select id="selectContract" resultType="com.peifeng.be.model.Contract">
+    SELECT
+      *
+    FROM
+      contract
+    LIMIT
+     1
+  </select>
+  <update id="updateByPrimaryKeySelective" parameterType="com.peifeng.be.model.Contract" >
+    update contract
+    <set >
+      <if test="address != null" >
+        address = #{address,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where 1 = 1
+  </update>
+</mapper>
