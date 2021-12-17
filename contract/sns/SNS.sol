@@ -2500,23 +2500,18 @@ contract NFT is ERC721URIStorage,Ownable{
     //In addition to the number cast by the administrator, the other numbers cast
     uint256  _tokenMintedExpManager = 0;
 
-    // /**
-    //  * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
-    //  */
-    // constructor(string memory name_, string memory symbol_) {
-    //     _name = name_;
-    //     _symbol = symbol_;
-    // }
 
     /**
      * @dev mint and add _tokenMintedExpManager
-     * @param tokenURI_ NFT tokenURI
      */
-    function _addrMint(string memory tokenURI_) internal  returns (uint256){
-        uint256 tokenId = _snsMint(tokenURI_);
+    function _addrMint() internal  returns (uint256){
+        uint256 tokenId = _tokenMinted + 1;
+        super._safeMint(_msgSender(),tokenId);
+        _tokenMinted += 1;
         _tokenMintedExpManager += 1;
         return tokenId;
     }
+
 
     /**
      * @dev mint
@@ -2526,8 +2521,32 @@ contract NFT is ERC721URIStorage,Ownable{
         uint256 tokenId = _tokenMinted + 1;
         super._safeMint(_msgSender(),tokenId);
         _tokenMinted += 1;
-        super._setTokenURI(tokenId,tokenURI_);
+        require(_setSigleTokenURI(tokenId,tokenURI_));
         return tokenId;
+    }
+
+    mapping(uint256 => bool) setTokenURLOnce;
+
+    /**
+     * @dev mint and add _tokenMintedExpManager
+     * @param tokenURI_ NFT tokenURI
+     */
+    function _setSigleTokenURI(uint256 tokenId_,string memory tokenURI_) internal returns (bool){
+        require(!setTokenURLOnce[tokenId_],"NFT.sol --- setTokenURI --- tokenURI has been set!!!");
+        super._setTokenURI(tokenId_,tokenURI_);
+        setTokenURLOnce[tokenId_] = true;
+        return true;
+    }
+
+    /**
+     * @dev mint and add _tokenMintedExpManager
+     * @param tokenIds_ NFT tokenId
+     * @param tokenURIs_ NFT tokenURI
+     */
+    function setTokenURI(uint256[] memory tokenIds_,string[] memory tokenURIs_) external onlyOwner{
+        for(uint256 i=0;i<tokenIds_.length;i++){
+            require(_setSigleTokenURI(tokenIds_[i],tokenURIs_[i]));
+        }
     }
 
 
@@ -2769,9 +2788,9 @@ contract SNS is NFT{
     //Whether the name has been registered
     mapping(string => bool)  _nameRegistered;
 
-    event FreeMint(address sender_,string name_,string tokenURI_);
+    event FreeMint(address sender_,string name_);
 
-    event Mint(address sender_,string name_,string tokenURI_);
+    event Mint(address sender_,string name_);
 
     event ManagerMint(address sender_,string name_,string tokenURI_, address to_);
 
@@ -2818,27 +2837,25 @@ contract SNS is NFT{
     /**
      * @dev The whitelist is open for 3 days registration (free of charge),
      * @param name_ SNS name
-     * @param tokenURI_  NFT tokenURI
      */
-    function freeMint(string memory name_,string memory tokenURI_) external virtual whitelisted(_msgSender()){
+    function freeMint(string memory name_) external virtual whitelisted(_msgSender()){
         require(block.timestamp <= _freeMintEndTime,"SNS.sol --- freeMint --- over freeMintEndTime!!!");
         require(_tokenMintedExpManager <= _freeMintQuantity,"SNS.sol --- freeMint --- over freeMintQuantity!!!");
         //NFT
-        uint256 tokenId = _addrMint(tokenURI_);
+        uint256 tokenId = _addrMint();
         //ENS
         require(_registerName(name_, _msgSender()),"SNS.sol --- freeMint --- Name register fail!!!");
         _nameOfTokenId[tokenId] = name_;
         //Key
         _key.mint();
-        emit FreeMint(_msgSender(), name_, tokenURI_);
+        emit FreeMint(_msgSender(), name_ );
     }
 
     /**
      * @dev After 1 MATIC/SNS, 10001 starts to charge 10 MATIC/SNS
      * @param name_ SNS name
-     * @param tokenURI_ NFT tokenURI
      */
-    function mint(string memory name_,string memory tokenURI_) payable external virtual {
+    function mint(string memory name_) payable external virtual {
         if(_tokenMintedExpManager <= _freeMintQuantity){
             require(msg.value == 1 ether,"SNS.sol --- mint --- msg.value should be 1 ether!!!");
         }else{
@@ -2847,13 +2864,13 @@ contract SNS is NFT{
         //Management address to collect money
         payable(owner()).transfer(msg.value);
         //NFT
-        uint256 tokenId = _addrMint(tokenURI_);
+        uint256 tokenId = _addrMint();
         //ENS
         require(_registerName(name_, _msgSender()),"SNS.sol --- mint --- Name register fail!!!");
         _nameOfTokenId[tokenId] = name_;
         //Key
         _key.mint();
-        emit Mint(_msgSender(), name_, tokenURI_);
+        emit Mint(_msgSender(), name_ );
     }
 
     /**
