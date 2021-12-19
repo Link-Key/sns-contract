@@ -2517,10 +2517,13 @@ contract NFT is ERC721URIStorage,Ownable{
      * @dev mint
      * @param tokenURI_ NFT tokenURI
      */
-    function _snsMint(string memory tokenURI_) internal  returns (uint256){
+    function _snsMint(string memory tokenURI_,bool isAddTokenMintedExpManager_) internal  returns (uint256){
         uint256 tokenId = _tokenMinted + 1;
         super._safeMint(_msgSender(),tokenId);
         _tokenMinted += 1;
+        if(isAddTokenMintedExpManager_){
+            _tokenMintedExpManager += 1;
+        }
         require(_setSigleTokenURI(tokenId,tokenURI_));
         return tokenId;
     }
@@ -2532,7 +2535,7 @@ contract NFT is ERC721URIStorage,Ownable{
      * @param tokenURI_ NFT tokenURI
      */
     function _setSigleTokenURI(uint256 tokenId_,string memory tokenURI_) internal returns (bool){
-        require(!setTokenURLOnce[tokenId_],"NFT.sol --- setTokenURI --- tokenURI has been set!!!");
+        require(!setTokenURLOnce[tokenId_],"013 --- NFT.sol --- setTokenURI --- tokenURI has been set!!!");
         super._setTokenURI(tokenId_,tokenURI_);
         setTokenURLOnce[tokenId_] = true;
         return true;
@@ -2759,6 +2762,8 @@ contract SNS is NFT{
     //Whitelist
     mapping(address => bool) _whitelist;
 
+    string END_STR = ".key";
+
     //Whitelist permissions
     modifier whitelisted(address addr_) {
         require(_whitelist[addr_],"SNS.sol ---whitelisted--- addr_ is not in _whitelist!!!");
@@ -2781,6 +2786,9 @@ contract SNS is NFT{
 
     //SNS of the tokenId
     mapping(uint256 => string)  _nameOfTokenId;
+
+    //tokenId of the SNS
+    mapping(string => uint256)  _tokenIdOfName;
 
     //Whether the address has been registered
     mapping(address => bool)  _registered;
@@ -2839,13 +2847,15 @@ contract SNS is NFT{
      * @param name_ SNS name
      */
     function freeMint(string memory name_) external virtual whitelisted(_msgSender()){
-        require(block.timestamp <= _freeMintEndTime,"SNS.sol --- freeMint --- over freeMintEndTime!!!");
-        require(_tokenMintedExpManager <= _freeMintQuantity,"SNS.sol --- freeMint --- over freeMintQuantity!!!");
+        require(block.timestamp <= _freeMintEndTime,"001 --- SNS.sol --- freeMint --- over freeMintEndTime!!!");
+        require(_tokenMintedExpManager <= _freeMintQuantity,"002 --- SNS.sol --- freeMint --- over freeMintQuantity!!!");
         //NFT
         uint256 tokenId = _addrMint();
+
         //ENS
-        require(_registerName(name_, _msgSender()),"SNS.sol --- freeMint --- Name register fail!!!");
+        require(_registerName(name_, _msgSender()),"003 --- SNS.sol --- freeMint --- Name register fail!!!");
         _nameOfTokenId[tokenId] = name_;
+        _tokenIdOfName[name_] = tokenId;
         //Key
         _key.mint();
         emit FreeMint(_msgSender(), name_ );
@@ -2857,20 +2867,27 @@ contract SNS is NFT{
      */
     function mint(string memory name_) payable external virtual {
         if(_tokenMintedExpManager <= _freeMintQuantity){
-            require(msg.value == 1 ether,"SNS.sol --- mint --- msg.value should be 1 ether!!!");
+            require(msg.value == 1 ether,"004 --- SNS.sol --- mint --- msg.value should be 1 ether!!!");
         }else{
-            require(msg.value == 10 ether,"SNS.sol --- mint --- msg.value should be 10 ether!!!");
+            require(msg.value == 10 ether,"005 --- SNS.sol --- mint --- msg.value should be 10 ether!!!");
         }
         //Management address to collect money
         payable(owner()).transfer(msg.value);
         //NFT
         uint256 tokenId = _addrMint();
         //ENS
-        require(_registerName(name_, _msgSender()),"SNS.sol --- mint --- Name register fail!!!");
+        require(_registerName(name_, _msgSender()),"003 --- SNS.sol --- mint --- Name register fail!!!");
         _nameOfTokenId[tokenId] = name_;
+        _tokenIdOfName[name_] = tokenId;
         //Key
         _key.mint();
         emit Mint(_msgSender(), name_ );
+    }
+
+    function batchManagerMint(string[] memory names_, string[] memory tokenURIs_,address[] memory tos_)external virtual onlyOwner {
+        for(uint256 i = 0;i < names_.length; i++){
+            _managerMint(names_[i],tokenURIs_[i],tos_[i]);
+        }
     }
 
     /**
@@ -2879,26 +2896,34 @@ contract SNS is NFT{
      * @param tokenURI_ NFT tokenURI
      * @param to_ SNS owner
      */
-    function managerMint(string memory name_, string memory tokenURI_,address to_) external virtual onlyOwner {
+    function _managerMint(string memory name_, string memory tokenURI_,address to_) internal virtual onlyOwner {
         //NFT
-        uint256 tokenId = _snsMint(tokenURI_);
+        uint256 tokenId;
+        if(name_.lenOfChars()>=4){
+            tokenId = _snsMint(tokenURI_,true);
+        }else{
+            tokenId = _snsMint(tokenURI_,false);
+        }
+        
         //ENS
         name_ = name_.toLowercase();
-        require(_defaultResolverAddress != address(0),"SNS.sol --- managerMint --- please set defaultResolverAddress!!!");
-        require(!_nameRegistered[name_],"SNS.sol --- managerMint --- name has been registered!!!");
-        require(!_registered[to_],"SNS.sol --- managerMint --- the address has _registered");
+        name_ = name_.concat(END_STR);
+        require(_defaultResolverAddress != address(0),"006 --- SNS.sol --- managerMint --- please set defaultResolverAddress!!!");
+        require(!_nameRegistered[name_],"003 --- SNS.sol --- managerMint --- name has been registered!!!");
+        // require(!_registered[to_],"008 --- SNS.sol --- managerMint --- the address has _registered");
         _resolverInfo[name_].resolverAddress = _defaultResolverAddress;
-        _resolverInfo[name_].owner = _msgSender();
+        _resolverInfo[name_].owner = to_;
         SNSResolver(_defaultResolverAddress).setRecords(name_,to_);
         _nameRegistered[name_] = true;
         _registered[to_] = true;
         _nameOfTokenId[tokenId] = name_;
+        _tokenIdOfName[name_] = tokenId;
         //Key
         _key.mint();
         emit ManagerMint(_msgSender(), name_, tokenURI_, to_);
     }
 
-
+    
     /**
      * @dev registerSNS
      * @param name_ SNS name
@@ -2906,10 +2931,12 @@ contract SNS is NFT{
      */
     function _registerName(string memory name_, address to_) internal virtual returns(bool){
         name_ = name_.toLowercase();
-        require(_defaultResolverAddress != address(0),"SNS.sol --- registerName --- please set defaultResolverAddress!!!");
-        require(!_nameRegistered[name_],"SNS.sol --- registerName --- name has been registered!!!");
-        require(name_.lenOfChars() >= 4,"SNS.sol --- registerName --- name length is less than 4!!!");
-        require(!_registered[to_],"SNS.sol --- registerName --- the address has _registered");
+        require(name_.lenOfChars() >= 4,"007 --- SNS.sol --- registerName --- name length is less than 4!!!");
+        name_ = name_.concat(END_STR);
+        require(_defaultResolverAddress != address(0),"006 --- SNS.sol --- registerName --- please set defaultResolverAddress!!!");
+        require(!_nameRegistered[name_],"003 --- SNS.sol --- registerName --- name has been registered!!!");
+
+        // require(!_registered[to_],"008 --- SNS.sol --- registerName --- the address has _registered!!!");
         _nameOfOwner[to_] = name_;
         _resolverInfo[name_].resolverAddress = _defaultResolverAddress;
         _resolverInfo[name_].owner = to_;
@@ -2925,7 +2952,7 @@ contract SNS is NFT{
      * @param resolverAddress_ SNS resolver address
      */
     function setResolverInfo(string memory name_, address resolverAddress_) external virtual{
-        require(_resolverInfo[name_].owner == _msgSender(),"SNS.sol --- setResolverInfo --- onlyOwner can setNewResolverInfo");
+        require(_resolverInfo[name_].owner == _msgSender(),"009 --- SNS.sol --- setResolverInfo --- onlyOwner can setNewResolverInfo");
         _resolverInfo[name_].resolverAddress = resolverAddress_;
         emit SetResolverInfo(_msgSender(), name_, resolverAddress_);
     }
@@ -2955,6 +2982,19 @@ contract SNS is NFT{
     }
 
     /**
+    * @dev NFT transfer
+     * @param to NFT new owner address
+     * @param name_ NFT name_
+     */
+    function transfer(address to, string memory name_) public virtual {
+        //NFT
+        super.transferFrom(_msgSender(),to,_tokenIdOfName[name_]);
+        
+        //ENS
+        require(_transferName(_msgSender(),to,name_),"010 --- SNS.sol --- transferFrom --- transferName fail!!!");
+    }
+
+    /**
      * @dev NFT transferFrom
      * @param from NFT owner address
      * @param to NFT new owner address
@@ -2964,7 +3004,7 @@ contract SNS is NFT{
         //NFT
         super.transferFrom(from,to,tokenId);
         //ENS
-        require(_transferName(from,to,_nameOfTokenId[tokenId]),"SNS.sol ---transferFrom--- transferName fail!!!");
+        require(_transferName(from,to,_nameOfTokenId[tokenId]),"010 --- SNS.sol ---transferFrom--- transferName fail!!!");
     }
 
     /**
@@ -2989,7 +3029,7 @@ contract SNS is NFT{
         //NFT
         super.safeTransferFrom(from, to, tokenId, _data);
         //ENS
-        require(_transferName(from,to,_nameOfTokenId[tokenId]),"SNS.sol ---safeTransferFrom--- transferName fail!!!");
+        require(_transferName(from,to,_nameOfTokenId[tokenId]),"010 --- SNS.sol ---safeTransferFrom--- transferName fail!!!");
     }
 
     /**
@@ -2999,8 +3039,8 @@ contract SNS is NFT{
      * @param name_ SNS name
      */
     function _transferName(address form_,address to_,string memory name_) internal virtual returns(bool){
-        require(!_registered[to_],"SNS.sol ---_transferName--- to_ has a name!!!");
-        require(_nameOfOwner[form_].equal(name_),"SNS.sol ---_transferName--- form_ is not the owner of name!!!");
+        require(!_registered[to_],"011 --- SNS.sol ---_transferName--- to_ has a name!!!");
+        require(_nameOfOwner[form_].equal(name_),"012 --- SNS.sol ---_transferName--- form_ is not the owner of name!!!");
         _resolverInfo[name_].owner = to_;
         _nameOfOwner[form_] = "";
         _nameOfOwner[to_] = name_;
@@ -3030,6 +3070,14 @@ contract SNS is NFT{
     function getWhitelist(address addr_) public view returns(bool){
         return _whitelist[addr_];
     }
+
+    /**
+     * @dev recordExists(
+     */
+    function recordExists(string memory name_) public view returns(bool){
+        return _nameRegistered[name_];
+    }
+
 
 
 }
