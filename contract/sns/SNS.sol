@@ -3072,11 +3072,27 @@ contract SNS is NFT{
     }
 
     /**
-     * @dev recordExists(
+     * @dev recordExists
      */
     function recordExists(string memory name_) public view returns(bool){
         return _nameRegistered[name_];
     }
+
+    /**
+     * @dev getNameOfOwner
+     */
+    function getNameOfOwner(address addr_) public view returns(string memory){
+        return _nameOfOwner[addr_];
+    }
+
+    /**
+         * @dev getNameOfOwner
+     */
+    function getTokenIdOfName(uint256 tokenId_) public view returns(string memory){
+        return _tokenIdOfName[tokenId_];
+    }
+
+
 
 
 
