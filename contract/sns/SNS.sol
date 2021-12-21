@@ -3,15 +3,15 @@
 pragma solidity ^0.8.0;
 
 
-library LibString{
-    
+library LibString {
 
-    function lenOfChars(string memory src) internal pure returns(uint){
-        uint i=0;
+
+    function lenOfChars(string memory src) internal pure returns (uint){
+        uint i = 0;
         uint length = 0;
         bytes memory string_rep = bytes(src);
         //UTF-8 skip word
-        while (i<string_rep.length)
+        while (i < string_rep.length)
         {
             i += utf8CharBytesLength(string_rep, i);
             length++;
@@ -19,76 +19,76 @@ library LibString{
         return length;
     }
 
-    function lenOfBytes(string memory src) internal pure returns(uint){
+    function lenOfBytes(string memory src) internal pure returns (uint){
         bytes memory srcb = bytes(src);
         return srcb.length;
     }
-    
-    
-    function startWith(string memory src, string memory prefix) internal pure returns(bool){
+
+
+    function startWith(string memory src, string memory prefix) internal pure returns (bool){
         bytes memory src_rep = bytes(src);
         bytes memory prefix_rep = bytes(prefix);
-        
-        if(src_rep.length < prefix_rep.length){
+
+        if (src_rep.length < prefix_rep.length) {
             return false;
         }
-        
+
         uint needleLen = prefix_rep.length;
-        for(uint i=0;i<needleLen;i++){
-            if(src_rep[i] != prefix_rep[i]) return false;
+        for (uint i = 0; i < needleLen; i++) {
+            if (src_rep[i] != prefix_rep[i]) return false;
         }
-        
+
         return true;
     }
-    
-    function endWith(string memory src, string memory tail) internal pure returns(bool){
+
+    function endWith(string memory src, string memory tail) internal pure returns (bool){
         bytes memory src_rep = bytes(src);
         bytes memory tail_rep = bytes(tail);
-        
-        if(src_rep.length < tail_rep.length){
+
+        if (src_rep.length < tail_rep.length) {
             return false;
         }
         uint srcLen = src_rep.length;
         uint needleLen = tail_rep.length;
-        for(uint i=0;i<needleLen;i++){
-            if(src_rep[srcLen-needleLen+i] != tail_rep[i]) return false;
-        }
-        
-        return true;    
-    }
-    
-
-    function equal(string memory self, string memory other) internal pure returns(bool){
-        bytes memory self_rep = bytes(self);
-        bytes memory other_rep = bytes(other);
-        
-        if(self_rep.length != other_rep.length){
-            return false;
-        }
-        uint selfLen = self_rep.length;
-        for(uint i=0;i<selfLen;i++){
-            if(self_rep[i] != other_rep[i]) return false;
-        }
-        return true;           
-    }
-
-    function equalNocase(string memory self, string memory other) internal pure returns(bool){
-        return compareNocase(self, other) == 0;
-    }
-    
-    function empty(string memory src) internal pure returns(bool){
-        bytes memory src_rep = bytes(src);
-        if(src_rep.length == 0) return true;
-
-        for(uint i=0;i<src_rep.length;i++){
-            bytes1 b = src_rep[i];
-            if(b != 0x20 && b != bytes1(0x09) && b!=bytes1(0x0A) && b!=bytes1(0x0D)) return false;
+        for (uint i = 0; i < needleLen; i++) {
+            if (src_rep[srcLen - needleLen + i] != tail_rep[i]) return false;
         }
 
         return true;
     }
 
-    function concat(string memory self, string memory str) internal returns (string memory  _ret)  {
+
+    function equal(string memory self, string memory other) internal pure returns (bool){
+        bytes memory self_rep = bytes(self);
+        bytes memory other_rep = bytes(other);
+
+        if (self_rep.length != other_rep.length) {
+            return false;
+        }
+        uint selfLen = self_rep.length;
+        for (uint i = 0; i < selfLen; i++) {
+            if (self_rep[i] != other_rep[i]) return false;
+        }
+        return true;
+    }
+
+    function equalNocase(string memory self, string memory other) internal pure returns (bool){
+        return compareNocase(self, other) == 0;
+    }
+
+    function empty(string memory src) internal pure returns (bool){
+        bytes memory src_rep = bytes(src);
+        if (src_rep.length == 0) return true;
+
+        for (uint i = 0; i < src_rep.length; i++) {
+            bytes1 b = src_rep[i];
+            if (b != 0x20 && b != bytes1(0x09) && b != bytes1(0x0A) && b != bytes1(0x0D)) return false;
+        }
+
+        return true;
+    }
+
+    function concat(string memory self, string memory str) internal returns (string memory _ret)  {
         _ret = new string(bytes(self).length + bytes(str).length);
 
         uint selfptr;
@@ -99,41 +99,41 @@ library LibString{
             strptr := add(str, 0x20)
             retptr := add(_ret, 0x20)
         }
-        
+
         memcpy(retptr, selfptr, bytes(self).length);
-        memcpy(retptr+bytes(self).length, strptr, bytes(str).length);
+        memcpy(retptr + bytes(self).length, strptr, bytes(str).length);
     }
-    
+
     //start is char index, not byte index
     function substrByCharIndex(string memory self, uint start, uint len) internal returns (string memory) {
-        if(len == 0) return "";
+        if (len == 0) return "";
         //start - bytePos
         //len - byteLen
         uint bytePos = 0;
         uint byteLen = 0;
-        uint i=0;
-        uint chars=0;
+        uint i = 0;
+        uint chars = 0;
         bytes memory self_rep = bytes(self);
         bool startMet = false;
         //UTF-8 skip word
-        while (i<self_rep.length)
+        while (i < self_rep.length)
         {
-            if(chars == start){
+            if (chars == start) {
                 bytePos = i;
                 startMet = true;
             }
-            if(chars == (start + len)){
+            if (chars == (start + len)) {
                 byteLen = i - bytePos;
             }
             i += utf8CharBytesLength(self_rep, i);
             chars++;
         }
-        if(chars == (start + len)){
+        if (chars == (start + len)) {
             byteLen = i - bytePos;
         }
         require(startMet, "start index out of range");
         require(byteLen != 0, "len out of range");
-        
+
         string memory ret = new string(byteLen);
 
         uint selfptr;
@@ -142,67 +142,68 @@ library LibString{
             selfptr := add(self, 0x20)
             retptr := add(ret, 0x20)
         }
-        
-        memcpy(retptr, selfptr+bytePos, byteLen);
+
+        memcpy(retptr, selfptr + bytePos, byteLen);
         return ret;
     }
 
-    function compare(string memory self, string memory other) internal pure returns(int8){
+    function compare(string memory self, string memory other) internal pure returns (int8){
         bytes memory selfb = bytes(self);
         bytes memory otherb = bytes(other);
         //byte by byte
-        for(uint i=0;i<selfb.length && i<otherb.length;i++){
+        for (uint i = 0; i < selfb.length && i < otherb.length; i++) {
             bytes1 b1 = selfb[i];
             bytes1 b2 = otherb[i];
-            if(b1 > b2) return 1;
-            if(b1 < b2) return -1;
+            if (b1 > b2) return 1;
+            if (b1 < b2) return - 1;
         }
         //and length
-        if(selfb.length > otherb.length) return 1;
-        if(selfb.length < otherb.length) return -1;
+        if (selfb.length > otherb.length) return 1;
+        if (selfb.length < otherb.length) return - 1;
         return 0;
     }
 
-    function compareNocase(string memory self, string memory other) internal pure returns(int8){
+    function compareNocase(string memory self, string memory other) internal pure returns (int8){
         bytes memory selfb = bytes(self);
         bytes memory otherb = bytes(other);
-        for(uint i=0;i<selfb.length && i<otherb.length;i++){
+        for (uint i = 0; i < selfb.length && i < otherb.length; i++) {
             bytes1 b1 = selfb[i];
             bytes1 b2 = otherb[i];
             bytes1 ch1 = b1 | 0x20;
             bytes1 ch2 = b2 | 0x20;
-            if(ch1 >= 'a' && ch1 <= 'z' && ch2 >= 'a' && ch2 <= 'z'){
-                if(ch1 > ch2) return 1;
-                if(ch1 < ch2) return -1;
+            if (ch1 >= 'a' && ch1 <= 'z' && ch2 >= 'a' && ch2 <= 'z') {
+                if (ch1 > ch2) return 1;
+                if (ch1 < ch2) return - 1;
             }
-            else{
-                if(b1 > b2) return 1;
-                if(b1 < b2) return -1;
+            else {
+                if (b1 > b2) return 1;
+                if (b1 < b2) return - 1;
             }
         }
 
-        if(selfb.length > otherb.length) return 1;
-        if(selfb.length < otherb.length) return -1;
+        if (selfb.length > otherb.length) return 1;
+        if (selfb.length < otherb.length) return - 1;
         return 0;
     }
-    
-    function toUppercase(string memory src) internal pure returns(string memory){
+
+    function toUppercase(string memory src) internal pure returns (string memory){
         bytes memory srcb = bytes(src);
-        for(uint i=0;i<srcb.length;i++){
+        for (uint i = 0; i < srcb.length; i++) {
             bytes1 b = srcb[i];
-            if(b >= 'a' && b <= 'z'){
-                b &= bytes1(0xDF);// -32
-                srcb[i] = b ;
+            if (b >= 'a' && b <= 'z') {
+                b &= bytes1(0xDF);
+                // -32
+                srcb[i] = b;
             }
         }
         return src;
     }
-    
-    function toLowercase(string memory src) internal pure returns(string memory){
+
+    function toLowercase(string memory src) internal pure returns (string memory){
         bytes memory srcb = bytes(src);
-        for(uint i=0;i<srcb.length;i++){
+        for (uint i = 0; i < srcb.length; i++) {
             bytes1 b = srcb[i];
-            if(b >= 'A' && b <= 'Z'){
+            if (b >= 'A' && b <= 'Z') {
                 b |= 0x20;
                 srcb[i] = b;
             }
@@ -224,9 +225,9 @@ library LibString{
      *             in the case of no matches found
      */
     function indexOf(string memory src, string memory value)
-        internal
-        pure
-        returns (int) {
+    internal
+    pure
+    returns (int) {
         return indexOf(src, value, 0);
     }
 
@@ -247,9 +248,9 @@ library LibString{
      *             in the case of no matches found
      */
     function indexOf(string  memory src, string memory value, uint offset)
-        internal
-        pure
-        returns (int) {
+    internal
+    pure
+    returns (int) {
         bytes memory srcBytes = bytes(src);
         bytes memory valueBytes = bytes(value);
 
@@ -261,21 +262,21 @@ library LibString{
             }
         }
 
-        return -1;
+        return - 1;
     }
 
     function split(string memory src, string memory separator)
-        internal
-        pure
-        returns (string[] memory splitArr) {
+    internal
+    pure
+    returns (string[] memory splitArr) {
         bytes memory srcBytes = bytes(src);
 
         uint offset = 0;
         uint splitsCount = 1;
-        int limit = -1;
+        int limit = - 1;
         while (offset < srcBytes.length - 1) {
             limit = indexOf(src, separator, offset);
-            if (limit == -1)
+            if (limit == - 1)
                 break;
             else {
                 splitsCount++;
@@ -308,23 +309,23 @@ library LibString{
     }
 
     //------------HELPER FUNCTIONS----------------
-    
-    function utf8CharBytesLength(bytes memory stringRep, uint ptr) internal pure returns(uint){
-            
-            if ((stringRep[ptr]>>7)==bytes1(0))
-                return 1;
-            if ((stringRep[ptr]>>5)==bytes1(0x06))
-                return 2;
-            if ((stringRep[ptr]>>4)==bytes1(0x0e))
-                return 3;
-            if ((stringRep[ptr]>>3)==bytes1(0x1e))
-                return 4;
+
+    function utf8CharBytesLength(bytes memory stringRep, uint ptr) internal pure returns (uint){
+
+        if ((stringRep[ptr] >> 7) == bytes1(0))
             return 1;
+        if ((stringRep[ptr] >> 5) == bytes1(0x06))
+            return 2;
+        if ((stringRep[ptr] >> 4) == bytes1(0x0e))
+            return 3;
+        if ((stringRep[ptr] >> 3) == bytes1(0x1e))
+            return 4;
+        return 1;
     }
 
     function memcpy(uint dest, uint src, uint len) internal view {
         // Copy word-length chunks while possible
-        for(; len >= 32; len -= 32) {
+        for (; len >= 32; len -= 32) {
             assembly {
                 mstore(dest, mload(src))
             }
@@ -340,7 +341,7 @@ library LibString{
             mstore(dest, or(destpart, srcpart))
         }
     }
-    
+
 }
 
 //----------------------------LinkKey----------------------------------
@@ -1183,7 +1184,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     ) internal virtual {}
 }
 
-contract LinkKey is ERC20,Ownable,Pausable {
+contract LinkKey is ERC20, Ownable, Pausable {
 
     using Timers for Timers.Timestamp;
     using SafeMath for uint256;
@@ -1208,7 +1209,7 @@ contract LinkKey is ERC20,Ownable,Pausable {
     constructor(string memory name_, string memory symbol_,
         uint64 deadline_, address userCollectAddress_,
         address teamCollectAddress_, address investorCollectAddress_, address bidderCollectAddress_,
-        uint256 releaseAmount_) ERC20(name_,symbol_) Pausable(){
+        uint256 releaseAmount_) ERC20(name_, symbol_) Pausable(){
 
         releaseTime.setDeadline(deadline_);
 
@@ -1236,8 +1237,8 @@ contract LinkKey is ERC20,Ownable,Pausable {
         _;
     }
 
-    function mint() public returns(bool){
-        if( (!minter[_msgSender()]) || releaseTime.isExpired() || paused() || totalShare <= 0){
+    function mint() public returns (bool){
+        if ((!minter[_msgSender()]) || releaseTime.isExpired() || paused() || totalShare <= 0) {
             return false;
         }
 
@@ -1253,59 +1254,59 @@ contract LinkKey is ERC20,Ownable,Pausable {
         return true;
     }
 
-    function setTotalShare() internal{
-        totalShare = userShare + teamShare + investorShare +bidderShare;
+    function setTotalShare() internal {
+        totalShare = userShare + teamShare + investorShare + bidderShare;
     }
 
-    function setUserShare(uint256 userShare_) public releaseStop onlyOwner{
+    function setUserShare(uint256 userShare_) public releaseStop onlyOwner {
         userShare = userShare_;
         setTotalShare();
     }
 
-    function setTeamShare(uint256 teamShare_) public releaseStop onlyOwner{
+    function setTeamShare(uint256 teamShare_) public releaseStop onlyOwner {
         teamShare = teamShare_;
         setTotalShare();
     }
 
-    function setInvestorShare(uint256 investorShare_) public releaseStop onlyOwner{
+    function setInvestorShare(uint256 investorShare_) public releaseStop onlyOwner {
         investorShare = investorShare_;
         setTotalShare();
     }
 
-    function setBidderShare(uint256 bidderShare_) public releaseStop onlyOwner{
+    function setBidderShare(uint256 bidderShare_) public releaseStop onlyOwner {
         bidderShare = bidderShare_;
         setTotalShare();
     }
 
-    function setReleaseTime(uint64 deadline_) public releaseStop onlyOwner{
+    function setReleaseTime(uint64 deadline_) public releaseStop onlyOwner {
         releaseTime.setDeadline(deadline_);
     }
 
-    function setUserCollectAddress(address userCollectAddress_) public onlyOwner{
+    function setUserCollectAddress(address userCollectAddress_) public onlyOwner {
         userCollectAddress = userCollectAddress_;
     }
 
-    function setTeamCollectAddress(address teamCollectAddress_) public onlyOwner{
+    function setTeamCollectAddress(address teamCollectAddress_) public onlyOwner {
         teamCollectAddress = teamCollectAddress_;
     }
 
-    function setInvestorCollectAddress(address investorCollectAddress_) public onlyOwner{
+    function setInvestorCollectAddress(address investorCollectAddress_) public onlyOwner {
         investorCollectAddress = investorCollectAddress_;
     }
 
-    function setBidderCollectAddress(address bidderCollectAddress_) public onlyOwner{
+    function setBidderCollectAddress(address bidderCollectAddress_) public onlyOwner {
         bidderCollectAddress = bidderCollectAddress_;
     }
 
-    function setMinter(address minter_) public onlyOwner{
+    function setMinter(address minter_) public onlyOwner {
         minter[minter_] = true;
     }
 
-    function removeMinter(address minter_) public onlyOwner{
+    function removeMinter(address minter_) public onlyOwner {
         minter[minter_] = false;
     }
 
-    function burn(uint256 amount_) public whenNotPaused{
+    function burn(uint256 amount_) public whenNotPaused {
         _burn(_msgSender(), amount_);
     }
 
@@ -1320,7 +1321,7 @@ contract LinkKey is ERC20,Ownable,Pausable {
      * - the caller must have allowance for ``accounts``'s tokens of at least
      * `amount`.
      */
-    function burnFrom(address account, uint256 amount) public whenNotPaused{
+    function burnFrom(address account, uint256 amount) public whenNotPaused {
         uint256 currentAllowance = allowance(account, _msgSender());
         require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
     unchecked {
@@ -1329,11 +1330,11 @@ contract LinkKey is ERC20,Ownable,Pausable {
         _burn(account, amount);
     }
 
-    function pause() public onlyOwner{
+    function pause() public onlyOwner {
         _pause();
     }
 
-    function unpause() public onlyOwner{
+    function unpause() public onlyOwner {
         _unpause();
     }
 }
@@ -1449,7 +1450,7 @@ library Address {
     function sendValue(address payable recipient, uint256 amount) internal {
         require(address(this).balance >= amount, "Address: insufficient balance");
 
-        (bool success, ) = recipient.call{value: amount}("");
+        (bool success,) = recipient.call{value : amount}("");
         require(success, "Address: unable to send value, recipient may have reverted");
     }
 
@@ -1523,7 +1524,7 @@ library Address {
         require(address(this).balance >= value, "Address: insufficient balance for call");
         require(isContract(target), "Address: call to non-contract");
 
-        (bool success, bytes memory returndata) = target.call{value: value}(data);
+        (bool success, bytes memory returndata) = target.call{value : value}(data);
         return verifyCallResult(success, returndata, errorMessage);
     }
 
@@ -1817,9 +1818,9 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
      */
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
         return
-            interfaceId == type(IERC721).interfaceId ||
-            interfaceId == type(IERC721Metadata).interfaceId ||
-            super.supportsInterface(interfaceId);
+        interfaceId == type(IERC721).interfaceId ||
+        interfaceId == type(IERC721Metadata).interfaceId ||
+        super.supportsInterface(interfaceId);
     }
 
     /**
@@ -2243,7 +2244,7 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
 
     // Mapping from token id to position in the allTokens array
     mapping(uint256 => uint256) private _allTokensIndex;
-    
+
     // Mapping from owner to list of owned token IDs
     mapping(address => uint256[])  _ownedTokensArr;
 
@@ -2269,14 +2270,14 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
     function totalSupply() public view virtual override returns (uint256) {
         return _allTokens.length;
     }
-    
-     /**
-     * @dev See {IERC721Enumerable-tokenOfOwnerByIndex}.
+
+    /**
+    * @dev See {IERC721Enumerable-tokenOfOwnerByIndex}.
      */
     function tokenOfOwner(address owner) public view virtual override returns (uint256[] memory) {
         return _ownedTokensArr[owner];
     }
-    
+
 
     /**
      * @dev See {IERC721Enumerable-tokenByIndex}.
@@ -2318,14 +2319,14 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
         } else if (to != from) {
             _addTokenToOwnerEnumeration(to, tokenId);
         }
-        if (from != address(0)){
-            require(_removeTokenToOwneArr(from,tokenId),"ERC721Enumerable --- _beforeTokenTransfer --- _removeTokenToOwneArr error!!!");
+        if (from != address(0)) {
+            require(_removeTokenToOwneArr(from, tokenId), "ERC721Enumerable --- _beforeTokenTransfer --- _removeTokenToOwneArr error!!!");
         }
-        if (to != address(0)){
-            require(_addTokenToOwneArr(to,tokenId),"ERC721Enumerable --- _beforeTokenTransfer --- _addTokenToOwneArr error!!!"); 
+        if (to != address(0)) {
+            require(_addTokenToOwneArr(to, tokenId), "ERC721Enumerable --- _beforeTokenTransfer --- _addTokenToOwneArr error!!!");
         }
-        
-        
+
+
     }
 
     /**
@@ -2337,7 +2338,7 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
         uint256 length = ERC721.balanceOf(to);
         _ownedTokens[to][length] = tokenId;
         _ownedTokensIndex[tokenId] = length;
-        
+
     }
 
     /**
@@ -2348,7 +2349,7 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
         _allTokensIndex[tokenId] = _allTokens.length;
         _allTokens.push(tokenId);
     }
-    
+
     /**
      * @dev Private function to add a token to this arr's ownership-tracking data structures.
      * @param to address representing the new owner of the given token ID
@@ -2378,8 +2379,10 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
         if (tokenIndex != lastTokenIndex) {
             uint256 lastTokenId = _ownedTokens[from][lastTokenIndex];
 
-            _ownedTokens[from][tokenIndex] = lastTokenId; // Move the last token to the slot of the to-delete token
-            _ownedTokensIndex[lastTokenId] = tokenIndex; // Update the moved token's index
+            _ownedTokens[from][tokenIndex] = lastTokenId;
+            // Move the last token to the slot of the to-delete token
+            _ownedTokensIndex[lastTokenId] = tokenIndex;
+            // Update the moved token's index
         }
 
         // This also deletes the contents at the last position of the array
@@ -2404,14 +2407,16 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
         // an 'if' statement (like in _removeTokenFromOwnerEnumeration)
         uint256 lastTokenId = _allTokens[lastTokenIndex];
 
-        _allTokens[tokenIndex] = lastTokenId; // Move the last token to the slot of the to-delete token
-        _allTokensIndex[lastTokenId] = tokenIndex; // Update the moved token's index
+        _allTokens[tokenIndex] = lastTokenId;
+        // Move the last token to the slot of the to-delete token
+        _allTokensIndex[lastTokenId] = tokenIndex;
+        // Update the moved token's index
 
         // This also deletes the contents at the last position of the array
         delete _allTokensIndex[tokenId];
         _allTokens.pop();
     }
-    
+
     /**
      * @dev Private function to add a token to this arr's ownership-tracking data structures.
      * @param from address representing the new owner of the given token ID
@@ -2420,16 +2425,16 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
     function _removeTokenToOwneArr(address from, uint256 tokenId) private returns (bool){
         bool flag;
         uint256[] memory tempArr = _ownedTokensArr[from];
-        for(uint256 i = 0; i < tempArr.length-1; i++){
-            if(tempArr[i] == tokenId){
+        for (uint256 i = 0; i < tempArr.length - 1; i++) {
+            if (tempArr[i] == tokenId) {
                 flag = true;
             }
-            if(flag){
-               _ownedTokensArr[from][i] =  tempArr[i+1];
+            if (flag) {
+                _ownedTokensArr[from][i] = tempArr[i + 1];
             }
         }
         _ownedTokensArr[from].pop();
-        
+
         return true;
     }
 }
@@ -2492,7 +2497,7 @@ abstract contract ERC721URIStorage is ERC721Enumerable {
 }
 
 
-contract NFT is ERC721URIStorage,Ownable{
+contract NFT is ERC721URIStorage, Ownable {
 
     //The number that has been minted
     uint256 private _tokenMinted = 0;
@@ -2504,9 +2509,9 @@ contract NFT is ERC721URIStorage,Ownable{
     /**
      * @dev mint and add _tokenMintedExpManager
      */
-    function _addrMint() internal  returns (uint256){
+    function _addrMint() internal returns (uint256){
         uint256 tokenId = _tokenMinted + 1;
-        super._safeMint(_msgSender(),tokenId);
+        super._safeMint(_msgSender(), tokenId);
         _tokenMinted += 1;
         _tokenMintedExpManager += 1;
         return tokenId;
@@ -2517,14 +2522,14 @@ contract NFT is ERC721URIStorage,Ownable{
      * @dev mint
      * @param tokenURI_ NFT tokenURI
      */
-    function _snsMint(string memory tokenURI_,bool isAddTokenMintedExpManager_) internal  returns (uint256){
+    function _snsMint(string memory tokenURI_, bool isAddTokenMintedExpManager_) internal returns (uint256){
         uint256 tokenId = _tokenMinted + 1;
-        super._safeMint(_msgSender(),tokenId);
+        super._safeMint(_msgSender(), tokenId);
         _tokenMinted += 1;
-        if(isAddTokenMintedExpManager_){
+        if (isAddTokenMintedExpManager_) {
             _tokenMintedExpManager += 1;
         }
-        require(_setSigleTokenURI(tokenId,tokenURI_));
+        require(_setSigleTokenURI(tokenId, tokenURI_));
         return tokenId;
     }
 
@@ -2534,9 +2539,9 @@ contract NFT is ERC721URIStorage,Ownable{
      * @dev mint and add _tokenMintedExpManager
      * @param tokenURI_ NFT tokenURI
      */
-    function _setSigleTokenURI(uint256 tokenId_,string memory tokenURI_) internal returns (bool){
-        require(!setTokenURLOnce[tokenId_],"013 --- NFT.sol --- setTokenURI --- tokenURI has been set!!!");
-        super._setTokenURI(tokenId_,tokenURI_);
+    function _setSigleTokenURI(uint256 tokenId_, string memory tokenURI_) public returns (bool){
+        require(!setTokenURLOnce[tokenId_], "013 --- NFT.sol --- setTokenURI --- tokenURI has been set!!!");
+        super._setTokenURI(tokenId_, tokenURI_);
         setTokenURLOnce[tokenId_] = true;
         return true;
     }
@@ -2546,9 +2551,9 @@ contract NFT is ERC721URIStorage,Ownable{
      * @param tokenIds_ NFT tokenId
      * @param tokenURIs_ NFT tokenURI
      */
-    function setTokenURI(uint256[] memory tokenIds_,string[] memory tokenURIs_) external onlyOwner{
-        for(uint256 i=0;i<tokenIds_.length;i++){
-            require(_setSigleTokenURI(tokenIds_[i],tokenURIs_[i]));
+    function setTokenURI(uint256[] memory tokenIds_, string[] memory tokenURIs_) external onlyOwner {
+        for (uint256 i = 0; i < tokenIds_.length; i++) {
+            require(_setSigleTokenURI(tokenIds_[i], tokenURIs_[i]));
         }
     }
 
@@ -2596,7 +2601,7 @@ interface Resolver {
 
     function getAllProperties(string memory name_) external returns (string memory);
 
-    function setAllProperties(string memory name_,string memory recordsStr_) external;
+    function setAllProperties(string memory name_, string memory recordsStr_) external;
 
 }
 
@@ -2717,10 +2722,10 @@ contract SNSResolver is Resolver {
         return records[name_].orgTelegram;
     }
 
-    function setAllProperties(string memory name_,string memory recordsStr_) external authorised(name_){
+    function setAllProperties(string memory name_, string memory recordsStr_) external authorised(name_) {
         recordsStr[name_] = recordsStr_;
         string[] memory properties = recordsStr_.split("-");
-        require(properties.length == 15,"SNS.sol --- setAllProperties --- recordsStr error!!!");
+        require(properties.length == 15, "SNS.sol --- setAllProperties --- recordsStr error!!!");
         records[name_].ethAddress = properties[0];
         records[name_].btcAddress = properties[1];
         records[name_].ltcAddress = properties[2];
@@ -2746,7 +2751,7 @@ contract SNSResolver is Resolver {
 
 }
 
-contract SNS is NFT{
+contract SNS is NFT {
     using SafeMath for uint256;
     using LibString for string;
 
@@ -2766,11 +2771,11 @@ contract SNS is NFT{
 
     //Whitelist permissions
     modifier whitelisted(address addr_) {
-        require(_whitelist[addr_],"SNS.sol ---whitelisted--- addr_ is not in _whitelist!!!");
+        require(_whitelist[addr_], "SNS.sol ---whitelisted--- addr_ is not in _whitelist!!!");
         _;
     }
 
-    struct ResolverInfo{
+    struct ResolverInfo {
         address resolverAddress;
         address owner;
     }
@@ -2796,11 +2801,9 @@ contract SNS is NFT{
     //Whether the name has been registered
     mapping(string => bool)  _nameRegistered;
 
-    event FreeMint(address sender_,string name_);
+    event Mint(address sender_, string name_, uint256 indexed tokenId);
 
-    event Mint(address sender_,string name_);
-
-    event ManagerMint(address sender_,string name_,string tokenURI_, address to_);
+    event ManagerMint(address sender_, string name_, string tokenURI_, address to_, uint256 indexed tokenId);
 
     event SetResolverInfo(address sender_, string name_, address resolverAddress_);
 
@@ -2813,7 +2816,7 @@ contract SNS is NFT{
      * @param symbol_ NFT symbol
      * @param freeMintQuantity_  SNS freeMintQuantity
      */
-    constructor(address key_,string memory name_, string memory symbol_,uint256 freeMintQuantity_) public {
+    constructor(address key_, string memory name_, string memory symbol_, uint256 freeMintQuantity_,uint256 freeMintEndTime_) public {
         //key
         _key = LinkKey(key_);
         //ERC721
@@ -2821,7 +2824,7 @@ contract SNS is NFT{
         _symbol = symbol_;
         //Free casting
         _freeMintQuantity = freeMintQuantity_;
-        _freeMintEndTime = block.timestamp.add(3 days);
+        _freeMintEndTime = freeMintEndTime_;
     }
 
     /**
@@ -2837,7 +2840,7 @@ contract SNS is NFT{
      * @param addrs_ address list
      */
     function setWhitelist(address[] memory addrs_) external virtual onlyOwner {
-        for(uint256 i = 0; i < addrs_.length; i ++){
+        for (uint256 i = 0; i < addrs_.length; i ++) {
             _whitelist[addrs_[i]] = true;
         }
     }
@@ -2846,19 +2849,22 @@ contract SNS is NFT{
      * @dev The whitelist is open for 3 days registration (free of charge),
      * @param name_ SNS name
      */
-    function freeMint(string memory name_) external virtual whitelisted(_msgSender()){
-        require(block.timestamp <= _freeMintEndTime,"001 --- SNS.sol --- freeMint --- over freeMintEndTime!!!");
-        require(_tokenMintedExpManager <= _freeMintQuantity,"002 --- SNS.sol --- freeMint --- over freeMintQuantity!!!");
+    function freeMint(string memory name_) external virtual whitelisted(_msgSender()) {
+        require(block.timestamp <= _freeMintEndTime, "001 --- SNS.sol --- freeMint --- over freeMintEndTime!!!");
+        require(_tokenMintedExpManager <= _freeMintQuantity, "002 --- SNS.sol --- freeMint --- over freeMintQuantity!!!");
+        require(name_.lenOfChars() >= 4, "007 --- SNS.sol --- registerName --- name length is less than 4!!!");
         //NFT
         uint256 tokenId = _addrMint();
 
         //ENS
-        require(_registerName(name_, _msgSender()),"003 --- SNS.sol --- freeMint --- Name register fail!!!");
+        name_ = name_.toLowercase();
+        name_ = name_.concat(END_STR);
+        require(_registerName(name_, _msgSender()), "003 --- SNS.sol --- freeMint --- Name register fail!!!");
         _nameOfTokenId[tokenId] = name_;
         _tokenIdOfName[name_] = tokenId;
         //Key
         _key.mint();
-        emit FreeMint(_msgSender(), name_ );
+        emit Mint(_msgSender(), name_, tokenId);
     }
 
     /**
@@ -2866,27 +2872,30 @@ contract SNS is NFT{
      * @param name_ SNS name
      */
     function mint(string memory name_) payable external virtual {
-        if(_tokenMintedExpManager <= _freeMintQuantity){
-            require(msg.value == 1 ether,"004 --- SNS.sol --- mint --- msg.value should be 1 ether!!!");
-        }else{
-            require(msg.value == 10 ether,"005 --- SNS.sol --- mint --- msg.value should be 10 ether!!!");
+        require(name_.lenOfChars() >= 4, "007 --- SNS.sol --- registerName --- name length is less than 4!!!");
+        if (_tokenMintedExpManager <= _freeMintQuantity) {
+            require(msg.value == 1 ether, "004 --- SNS.sol --- mint --- msg.value should be 1 ether!!!");
+        } else {
+            require(msg.value == 10 ether, "005 --- SNS.sol --- mint --- msg.value should be 10 ether!!!");
         }
         //Management address to collect money
         payable(owner()).transfer(msg.value);
         //NFT
         uint256 tokenId = _addrMint();
         //ENS
-        require(_registerName(name_, _msgSender()),"003 --- SNS.sol --- mint --- Name register fail!!!");
+        name_ = name_.toLowercase();
+        name_ = name_.concat(END_STR);
+        require(_registerName(name_, _msgSender()), "003 --- SNS.sol --- mint --- Name register fail!!!");
         _nameOfTokenId[tokenId] = name_;
         _tokenIdOfName[name_] = tokenId;
         //Key
         _key.mint();
-        emit Mint(_msgSender(), name_ );
+        emit Mint(_msgSender(), name_, tokenId);
     }
 
-    function batchManagerMint(string[] memory names_, string[] memory tokenURIs_,address[] memory tos_)external virtual onlyOwner {
-        for(uint256 i = 0;i < names_.length; i++){
-            _managerMint(names_[i],tokenURIs_[i],tos_[i]);
+    function batchManagerMint(string[] memory names_, string[] memory tokenURIs_, address[] memory tos_) external virtual onlyOwner {
+        for (uint256 i = 0; i < names_.length; i++) {
+            _managerMint(names_[i], tokenURIs_[i], tos_[i]);
         }
     }
 
@@ -2896,51 +2905,48 @@ contract SNS is NFT{
      * @param tokenURI_ NFT tokenURI
      * @param to_ SNS owner
      */
-    function _managerMint(string memory name_, string memory tokenURI_,address to_) internal virtual onlyOwner {
+    function _managerMint(string memory name_, string memory tokenURI_, address to_) internal virtual onlyOwner {
         //NFT
         uint256 tokenId;
-        if(name_.lenOfChars()>=4){
-            tokenId = _snsMint(tokenURI_,true);
-        }else{
-            tokenId = _snsMint(tokenURI_,false);
+        if (name_.lenOfChars() >= 4) {
+            tokenId = _snsMint(tokenURI_, true);
+        } else {
+            tokenId = _snsMint(tokenURI_, false);
         }
-        
+
         //ENS
         name_ = name_.toLowercase();
         name_ = name_.concat(END_STR);
-        require(_defaultResolverAddress != address(0),"006 --- SNS.sol --- managerMint --- please set defaultResolverAddress!!!");
-        require(!_nameRegistered[name_],"003 --- SNS.sol --- managerMint --- name has been registered!!!");
+        require(_defaultResolverAddress != address(0), "006 --- SNS.sol --- managerMint --- please set defaultResolverAddress!!!");
+        require(!_nameRegistered[name_], "003 --- SNS.sol --- managerMint --- name has been registered!!!");
         // require(!_registered[to_],"008 --- SNS.sol --- managerMint --- the address has _registered");
         _resolverInfo[name_].resolverAddress = _defaultResolverAddress;
         _resolverInfo[name_].owner = to_;
-        SNSResolver(_defaultResolverAddress).setRecords(name_,to_);
+        SNSResolver(_defaultResolverAddress).setRecords(name_, to_);
         _nameRegistered[name_] = true;
         _registered[to_] = true;
         _nameOfTokenId[tokenId] = name_;
         _tokenIdOfName[name_] = tokenId;
         //Key
         _key.mint();
-        emit ManagerMint(_msgSender(), name_, tokenURI_, to_);
+        emit ManagerMint(_msgSender(), name_, tokenURI_, to_, tokenId);
     }
 
-    
+
     /**
      * @dev registerSNS
      * @param name_ SNS name
      * @param to_ SNS owner
      */
-    function _registerName(string memory name_, address to_) internal virtual returns(bool){
-        name_ = name_.toLowercase();
-        require(name_.lenOfChars() >= 4,"007 --- SNS.sol --- registerName --- name length is less than 4!!!");
-        name_ = name_.concat(END_STR);
-        require(_defaultResolverAddress != address(0),"006 --- SNS.sol --- registerName --- please set defaultResolverAddress!!!");
-        require(!_nameRegistered[name_],"003 --- SNS.sol --- registerName --- name has been registered!!!");
+    function _registerName(string memory name_, address to_) internal virtual returns (bool){
+        require(_defaultResolverAddress != address(0), "006 --- SNS.sol --- registerName --- please set defaultResolverAddress!!!");
+        require(!_nameRegistered[name_], "003 --- SNS.sol --- registerName --- name has been registered!!!");
 
         // require(!_registered[to_],"008 --- SNS.sol --- registerName --- the address has _registered!!!");
         _nameOfOwner[to_] = name_;
         _resolverInfo[name_].resolverAddress = _defaultResolverAddress;
         _resolverInfo[name_].owner = to_;
-        SNSResolver(_defaultResolverAddress).setRecords(name_,to_);
+        SNSResolver(_defaultResolverAddress).setRecords(name_, to_);
         _nameRegistered[name_] = true;
         _registered[to_] = true;
         return true;
@@ -2951,8 +2957,8 @@ contract SNS is NFT{
      * @param name_ SNS name
      * @param resolverAddress_ SNS resolver address
      */
-    function setResolverInfo(string memory name_, address resolverAddress_) external virtual{
-        require(_resolverInfo[name_].owner == _msgSender(),"009 --- SNS.sol --- setResolverInfo --- onlyOwner can setNewResolverInfo");
+    function setResolverInfo(string memory name_, address resolverAddress_) external virtual {
+        require(_resolverInfo[name_].owner == _msgSender(), "009 --- SNS.sol --- setResolverInfo --- onlyOwner can setNewResolverInfo");
         _resolverInfo[name_].resolverAddress = resolverAddress_;
         emit SetResolverInfo(_msgSender(), name_, resolverAddress_);
     }
@@ -2961,7 +2967,7 @@ contract SNS is NFT{
      * @dev getResolverAddress
      * @param name_  SNS name
      */
-    function getResolverAddress(string memory name_) view external returns(address){
+    function getResolverAddress(string memory name_) view external returns (address){
         return _resolverInfo[name_].resolverAddress;
     }
 
@@ -2969,7 +2975,7 @@ contract SNS is NFT{
      * @dev getResolverOwner
      * @param name_  SNS name
      */
-    function getResolverOwner(string memory name_) view external returns(address){
+    function getResolverOwner(string memory name_) view external returns (address){
         return _resolverInfo[name_].owner;
     }
 
@@ -2977,7 +2983,7 @@ contract SNS is NFT{
      * @dev getSNSName
      * @param addr_  owner address
      */
-    function getSNSName(address addr_) view external returns(string memory){
+    function getSNSName(address addr_) view external returns (string memory){
         return _nameOfOwner[addr_];
     }
 
@@ -2988,10 +2994,10 @@ contract SNS is NFT{
      */
     function transfer(address to, string memory name_) public virtual {
         //NFT
-        super.transferFrom(_msgSender(),to,_tokenIdOfName[name_]);
-        
+        super.transferFrom(_msgSender(), to, _tokenIdOfName[name_]);
+
         //ENS
-        require(_transferName(_msgSender(),to,name_),"010 --- SNS.sol --- transferFrom --- transferName fail!!!");
+        require(_transferName(_msgSender(), to, name_), "010 --- SNS.sol --- transferFrom --- transferName fail!!!");
     }
 
     /**
@@ -3002,9 +3008,9 @@ contract SNS is NFT{
      */
     function transferFrom(address from, address to, uint256 tokenId) public virtual override {
         //NFT
-        super.transferFrom(from,to,tokenId);
+        super.transferFrom(from, to, tokenId);
         //ENS
-        require(_transferName(from,to,_nameOfTokenId[tokenId]),"010 --- SNS.sol ---transferFrom--- transferName fail!!!");
+        require(_transferName(from, to, _nameOfTokenId[tokenId]), "010 --- SNS.sol ---transferFrom--- transferName fail!!!");
     }
 
     /**
@@ -3015,7 +3021,7 @@ contract SNS is NFT{
      */
     function safeTransferFrom(address from, address to, uint256 tokenId) public virtual override {
         //NFT
-        safeTransferFrom(from,to,tokenId,"");
+        safeTransferFrom(from, to, tokenId, "");
     }
 
     /**
@@ -3025,11 +3031,11 @@ contract SNS is NFT{
      * @param tokenId NFT tokenId
      * @param _data NFT extra data
      */
-    function safeTransferFrom(address from, address to,uint256 tokenId, bytes memory _data) public virtual override {
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public virtual override {
         //NFT
         super.safeTransferFrom(from, to, tokenId, _data);
         //ENS
-        require(_transferName(from,to,_nameOfTokenId[tokenId]),"010 --- SNS.sol ---safeTransferFrom--- transferName fail!!!");
+        require(_transferName(from, to, _nameOfTokenId[tokenId]), "010 --- SNS.sol ---safeTransferFrom--- transferName fail!!!");
     }
 
     /**
@@ -3038,14 +3044,15 @@ contract SNS is NFT{
      * @param to_ SNS new owner address
      * @param name_ SNS name
      */
-    function _transferName(address form_,address to_,string memory name_) internal virtual returns(bool){
-        require(!_registered[to_],"011 --- SNS.sol ---_transferName--- to_ has a name!!!");
-        require(_nameOfOwner[form_].equal(name_),"012 --- SNS.sol ---_transferName--- form_ is not the owner of name!!!");
+    function _transferName(address form_, address to_, string memory name_) internal virtual returns (bool){
+        require(!_registered[to_], "011 --- SNS.sol ---_transferName--- to_ has a name!!!");
+        require(_nameOfOwner[form_].equal(name_), "012 --- SNS.sol ---_transferName--- form_ is not the owner of name!!!");
         _resolverInfo[name_].owner = to_;
         _nameOfOwner[form_] = "";
         _nameOfOwner[to_] = name_;
         _registered[form_] = false;
         _registered[to_] = true;
+        SNSResolver(_defaultResolverAddress).setRecords(name_, to_);
         emit TransferName(_msgSender(), form_, to_, name_);
         return true;
     }
@@ -3053,47 +3060,44 @@ contract SNS is NFT{
     /**
      * @dev is over Free casting deadline?
      */
-    function isOverDeadline() public view returns(bool){
+    function isOverDeadline() public view returns (bool){
         return block.timestamp > _freeMintEndTime;
     }
 
     /**
      * @dev _tokenMintedExpManager
      */
-    function getTokenMintedExpManager() public view returns(uint256){
+    function getTokenMintedExpManager() public view returns (uint256){
         return _tokenMintedExpManager;
     }
 
     /**
      * @dev _tokenMintedExpManager
      */
-    function getWhitelist(address addr_) public view returns(bool){
+    function getWhitelist(address addr_) public view returns (bool){
         return _whitelist[addr_];
     }
 
     /**
      * @dev recordExists
      */
-    function recordExists(string memory name_) public view returns(bool){
+    function recordExists(string memory name_) public view returns (bool){
         return _nameRegistered[name_];
     }
 
     /**
      * @dev getNameOfOwner
      */
-    function getNameOfOwner(address addr_) public view returns(string memory){
+    function getNameOfOwner(address addr_) public view returns (string memory){
         return _nameOfOwner[addr_];
     }
 
     /**
          * @dev getNameOfOwner
      */
-    function getTokenIdOfName(uint256 tokenId_) public view returns(string memory){
-        return _tokenIdOfName[tokenId_];
+    function getNameOfTokenId(uint256 tokenId_) public view returns (string memory){
+        return _nameOfTokenId[tokenId_];
     }
-
-
-
 
 
 }
