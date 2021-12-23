@@ -2724,23 +2724,25 @@ contract SNSResolver is Resolver {
 
     function setAllProperties(string memory name_, string memory recordsStr_) external authorised(name_) {
         recordsStr[name_] = recordsStr_;
-        string[] memory properties = recordsStr_.split("-");
-        require(properties.length == 15, "SNS.sol --- setAllProperties --- recordsStr error!!!");
-        records[name_].ethAddress = properties[0];
-        records[name_].btcAddress = properties[1];
-        records[name_].ltcAddress = properties[2];
-        records[name_].dogeAddress = properties[3];
-        records[name_].ipfsUrl = properties[4];
-        records[name_].url = properties[5];
-        records[name_].email = properties[6];
-        records[name_].avatar = properties[7];
-        records[name_].description = properties[8];
-        records[name_].notice = properties[9];
-        records[name_].keywords = properties[10];
-        records[name_].comGithub = properties[11];
-        records[name_].comReddit = properties[12];
-        records[name_].comTwitter = properties[13];
-        records[name_].orgTelegram = properties[14];
+        string[] memory properties = recordsStr_.split("+");
+        require(properties.length == 15 || properties.length == 14, "013 --- SNS.sol --- setAllProperties --- recordsStr error!!!");
+        records[name_].ethAddress = properties[0].equalNocase("")?records[name_].ethAddress:properties[0];
+        records[name_].btcAddress = properties[1].equalNocase("")?records[name_].btcAddress:properties[0];
+        records[name_].ltcAddress = properties[2].equalNocase("")?records[name_].ltcAddress:properties[0];
+        records[name_].dogeAddress = properties[3].equalNocase("")?records[name_].dogeAddress:properties[0];
+        records[name_].ipfsUrl = properties[4].equalNocase("")?records[name_].ipfsUrl:properties[0];
+        records[name_].url = properties[5].equalNocase("")?records[name_].url:properties[0];
+        records[name_].email = properties[6].equalNocase("")?records[name_].email:properties[0];
+        records[name_].avatar = properties[7].equalNocase("")?records[name_].avatar:properties[0];
+        records[name_].description = properties[8].equalNocase("")?records[name_].description:properties[0];
+        records[name_].notice = properties[9].equalNocase("")?records[name_].notice:properties[0];
+        records[name_].keywords = properties[10].equalNocase("")?records[name_].keywords:properties[0];
+        records[name_].comGithub = properties[11].equalNocase("")?records[name_].comGithub:properties[0];
+        records[name_].comReddit = properties[12].equalNocase("")?records[name_].comReddit:properties[0];
+        records[name_].comTwitter = properties[13].equalNocase("")?records[name_].comTwitter:properties[0];
+        if(properties.length == 15){
+            records[name_].orgTelegram = properties[14].equalNocase("")?records[name_].orgTelegram:properties[0];
+        }
 
         emit ContentChanged(name_, "all", recordsStr_);
     }
@@ -2873,7 +2875,7 @@ contract SNS is NFT {
      */
     function mint(string memory name_) payable external virtual {
         require(name_.lenOfChars() >= 4, "007 --- SNS.sol --- registerName --- name length is less than 4!!!");
-        if (_tokenMintedExpManager <= _freeMintQuantity) {
+        if (_tokenMintedExpManager < _freeMintQuantity) {
             require(msg.value == 1 ether, "004 --- SNS.sol --- mint --- msg.value should be 1 ether!!!");
         } else {
             require(msg.value == 10 ether, "005 --- SNS.sol --- mint --- msg.value should be 10 ether!!!");
@@ -3099,5 +3101,12 @@ contract SNS is NFT {
         return _nameOfTokenId[tokenId_];
     }
 
+
+    /**
+         * @dev _freeMintQuantity
+     */
+    function getFreeMintQuantity() public view returns (uint256){
+        return _freeMintQuantity;
+    }
 
 }
