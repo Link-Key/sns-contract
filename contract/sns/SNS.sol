@@ -2921,7 +2921,7 @@ contract SNS is NFT {
         name_ = name_.concat(END_STR);
         require(_defaultResolverAddress != address(0), "006 --- SNS.sol --- managerMint --- please set defaultResolverAddress!!!");
         require(!_nameRegistered[name_], "003 --- SNS.sol --- managerMint --- name has been registered!!!");
-        // require(!_registered[to_],"008 --- SNS.sol --- managerMint --- the address has _registered");
+        require(!_registered[to_],"008 --- SNS.sol --- managerMint --- the address has _registered");
         _resolverInfo[name_].resolverAddress = _defaultResolverAddress;
         _resolverInfo[name_].owner = to_;
         SNSResolver(_defaultResolverAddress).setRecords(name_, to_);
@@ -2943,8 +2943,7 @@ contract SNS is NFT {
     function _registerName(string memory name_, address to_) internal virtual returns (bool){
         require(_defaultResolverAddress != address(0), "006 --- SNS.sol --- registerName --- please set defaultResolverAddress!!!");
         require(!_nameRegistered[name_], "003 --- SNS.sol --- registerName --- name has been registered!!!");
-
-        // require(!_registered[to_],"008 --- SNS.sol --- registerName --- the address has _registered!!!");
+        require(!_registered[to_],"008 --- SNS.sol --- registerName --- the address has _registered!!!");
         _nameOfOwner[to_] = name_;
         _resolverInfo[name_].resolverAddress = _defaultResolverAddress;
         _resolverInfo[name_].owner = to_;
