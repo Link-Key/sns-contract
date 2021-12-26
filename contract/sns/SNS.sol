@@ -2520,16 +2520,15 @@ contract NFT is ERC721URIStorage, Ownable {
 
     /**
      * @dev mint
-     * @param tokenURI_ NFT tokenURI
+     * @param isAddTokenMintedExpManager_ isAddTokenMintedExpManager
      */
-    function _snsMint(string memory tokenURI_, bool isAddTokenMintedExpManager_) internal returns (uint256){
+    function _snsMint( bool isAddTokenMintedExpManager_) internal returns (uint256){
         uint256 tokenId = _tokenMinted + 1;
         super._safeMint(_msgSender(), tokenId);
         _tokenMinted += 1;
         if (isAddTokenMintedExpManager_) {
             _tokenMintedExpManager += 1;
         }
-        require(_setSigleTokenURI(tokenId, tokenURI_));
         return tokenId;
     }
 
@@ -2803,9 +2802,12 @@ contract SNS is NFT {
     //Whether the name has been registered
     mapping(string => bool)  _nameRegistered;
 
+    //Mint value send to this address
+    address private _moneyAddr;
+
     event Mint(address sender_, string name_, uint256 indexed tokenId);
 
-    event ManagerMint(address sender_, string name_, string tokenURI_, address to_, uint256 indexed tokenId);
+    event ManagerMint(address sender_, string name_, address to_, uint256 indexed tokenId);
 
     event SetResolverInfo(address sender_, string name_, address resolverAddress_);
 
@@ -2818,7 +2820,7 @@ contract SNS is NFT {
      * @param symbol_ NFT symbol
      * @param freeMintQuantity_  SNS freeMintQuantity
      */
-    constructor(address key_, string memory name_, string memory symbol_, uint256 freeMintQuantity_,uint256 freeMintEndTime_) public {
+    constructor(address key_, string memory name_, string memory symbol_, uint256 freeMintQuantity_,uint256 freeMintEndTime_,address payable moneyAddr_) public {
         //key
         _key = LinkKey(key_);
         //ERC721
@@ -2827,6 +2829,8 @@ contract SNS is NFT {
         //Free casting
         _freeMintQuantity = freeMintQuantity_;
         _freeMintEndTime = freeMintEndTime_;
+
+        _moneyAddr = moneyAddr_;
     }
 
     /**
@@ -2881,7 +2885,7 @@ contract SNS is NFT {
             require(msg.value == 10 ether, "005 --- SNS.sol --- mint --- msg.value should be 10 ether!!!");
         }
         //Management address to collect money
-        payable(owner()).transfer(msg.value);
+        payable(_moneyAddr).transfer(msg.value);
         //NFT
         uint256 tokenId = _addrMint();
         //ENS
@@ -2895,43 +2899,55 @@ contract SNS is NFT {
         emit Mint(_msgSender(), name_, tokenId);
     }
 
-    function batchManagerMint(string[] memory names_, string[] memory tokenURIs_, address[] memory tos_) external virtual onlyOwner {
+    function batchManagerMint(string[] memory names_, address[] memory tos_) external virtual onlyOwner {
         for (uint256 i = 0; i < names_.length; i++) {
-            _managerMint(names_[i], tokenURIs_[i], tos_[i]);
+            _managerMint(names_[i], tos_[i]);
         }
     }
 
     /**
      * @dev Management address registration, not included in the free quota
      * @param name_ SNS name
-     * @param tokenURI_ NFT tokenURI
      * @param to_ SNS owner
      */
-    function _managerMint(string memory name_, string memory tokenURI_, address to_) internal virtual onlyOwner {
-        //NFT
-        uint256 tokenId;
-        if (name_.lenOfChars() >= 4) {
-            tokenId = _snsMint(tokenURI_, true);
-        } else {
-            tokenId = _snsMint(tokenURI_, false);
-        }
+    function _managerMint(string memory name_, address to_) internal virtual onlyOwner returns (bool){
 
-        //ENS
+        string memory oldName_ = name_;
+
         name_ = name_.toLowercase();
         name_ = name_.concat(END_STR);
-        require(_defaultResolverAddress != address(0), "006 --- SNS.sol --- managerMint --- please set defaultResolverAddress!!!");
-        require(!_nameRegistered[name_], "003 --- SNS.sol --- managerMint --- name has been registered!!!");
-        require(!_registered[to_],"008 --- SNS.sol --- managerMint --- the address has _registered");
-        _resolverInfo[name_].resolverAddress = _defaultResolverAddress;
-        _resolverInfo[name_].owner = to_;
-        SNSResolver(_defaultResolverAddress).setRecords(name_, to_);
-        _nameRegistered[name_] = true;
-        _registered[to_] = true;
-        _nameOfTokenId[tokenId] = name_;
-        _tokenIdOfName[name_] = tokenId;
-        //Key
-        _key.mint();
-        emit ManagerMint(_msgSender(), name_, tokenURI_, to_, tokenId);
+
+        if(_nameRegistered[name_] || _registered[to_]){
+            return false;
+        }else{
+            //NFT
+            uint256 tokenId;
+            if (oldName_.lenOfChars() >= 4) {
+                tokenId = _snsMint(true);
+            } else {
+                tokenId = _snsMint( false);
+            }
+
+            //ENS
+            require(_defaultResolverAddress != address(0), "006 --- SNS.sol --- managerMint --- please set defaultResolverAddress!!!");
+            require(!_nameRegistered[name_], "003 --- SNS.sol --- managerMint --- name has been registered!!!");
+            require(!_registered[to_],"008 --- SNS.sol --- managerMint --- the address has _registered");
+            _resolverInfo[name_].resolverAddress = _defaultResolverAddress;
+            _resolverInfo[name_].owner = to_;
+            SNSResolver(_defaultResolverAddress).setRecords(name_, to_);
+            _nameRegistered[name_] = true;
+            _registered[to_] = true;
+            _nameOfTokenId[tokenId] = name_;
+            _tokenIdOfName[name_] = tokenId;
+            //Key
+            _key.mint();
+            emit ManagerMint(_msgSender(), name_, to_, tokenId);
+            return true;
+        }
+
+        
+        
+
     }
 
 
