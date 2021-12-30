@@ -2500,11 +2500,7 @@ abstract contract ERC721URIStorage is ERC721Enumerable {
 contract NFT is ERC721URIStorage, Ownable {
 
     //The number that has been minted
-    uint256 private _tokenMinted = 0;
-
-    //In addition to the number cast by the administrator, the other numbers cast
-    uint256  _tokenMintedExpManager = 0;
-
+    uint256 _tokenMinted = 0;
 
     /**
      * @dev mint and add _tokenMintedExpManager
@@ -2513,22 +2509,6 @@ contract NFT is ERC721URIStorage, Ownable {
         uint256 tokenId = _tokenMinted + 1;
         super._safeMint(_msgSender(), tokenId);
         _tokenMinted += 1;
-        _tokenMintedExpManager += 1;
-        return tokenId;
-    }
-
-
-    /**
-     * @dev mint
-     * @param isAddTokenMintedExpManager_ isAddTokenMintedExpManager
-     */
-    function _snsMint( bool isAddTokenMintedExpManager_) internal returns (uint256){
-        uint256 tokenId = _tokenMinted + 1;
-        super._safeMint(_msgSender(), tokenId);
-        _tokenMinted += 1;
-        if (isAddTokenMintedExpManager_) {
-            _tokenMintedExpManager += 1;
-        }
         return tokenId;
     }
 
@@ -2609,14 +2589,14 @@ contract SNSResolver is Resolver {
 
     struct Record {
         address owner;
-        //地址
+        //address
         string ethAddress;
         string btcAddress;
         string ltcAddress;
         string dogeAddress;
         //ipfs
         string ipfsUrl;
-        //文件记录
+        //records
         string url;
         string email;
         string avatar;
@@ -2759,26 +2739,25 @@ contract SNS is NFT {
     //ERC20 key address
     LinkKey  _key;
 
-    //Free casting deadline
-    uint256  _freeMintEndTime;
-
-    //Free casting quantity
-    uint256  _freeMintQuantity;
-
-    //Whitelist
-    mapping(address => bool) _whitelist;
-
     string END_STR = ".key";
 
-    //Whitelist permissions
-    modifier whitelisted(address addr_) {
-        require(_whitelist[addr_], "SNS.sol ---whitelisted--- addr_ is not in _whitelist!!!");
-        _;
-    }
+    uint256 STANDARD_LENGTH = 4;
+
+    uint256 SHORT_LENGTH = 3;
+
 
     struct ResolverInfo {
         address resolverAddress;
         address owner;
+    }
+
+    //shortNameAllowedlist
+    mapping(address => bool) _shortNameAllowedlist;
+
+    //shortNameAllowed permissions
+    modifier shortNameAllowed(address addr_) {
+        require(_shortNameAllowedlist[addr_], "014 --- SNS.sol ---shortNameAllowed--- addr_ is not in _shortNameAllowedlist!!!");
+        _;
     }
 
     //User resolver address
@@ -2803,7 +2782,7 @@ contract SNS is NFT {
     mapping(string => bool)  _nameRegistered;
 
     //Mint value send to this address
-    address private _moneyAddr;
+    address private _feeTo;
 
     event Mint(address sender_, string name_, uint256 indexed tokenId);
 
@@ -2818,19 +2797,16 @@ contract SNS is NFT {
      * @param key_ ERC20 address
      * @param name_ NFT name
      * @param symbol_ NFT symbol
-     * @param freeMintQuantity_  SNS freeMintQuantity
+     * @param feeTo_ feeAddress
      */
-    constructor(address key_, string memory name_, string memory symbol_, uint256 freeMintQuantity_,uint256 freeMintEndTime_,address payable moneyAddr_) public {
+    constructor(address key_, string memory name_, string memory symbol_,address payable feeTo_) public {
         //key
         _key = LinkKey(key_);
         //ERC721
         _name = name_;
         _symbol = symbol_;
-        //Free casting
-        _freeMintQuantity = freeMintQuantity_;
-        _freeMintEndTime = freeMintEndTime_;
 
-        _moneyAddr = moneyAddr_;
+        _feeTo = feeTo_;
     }
 
     /**
@@ -2842,23 +2818,65 @@ contract SNS is NFT {
     }
 
     /**
-     * @dev setWhitelist
+     * @dev setShortNameAllowed
      * @param addrs_ address list
      */
-    function setWhitelist(address[] memory addrs_) external virtual onlyOwner {
+    function setShortNameAllowed(address[] memory addrs_) external virtual onlyOwner {
         for (uint256 i = 0; i < addrs_.length; i ++) {
-            _whitelist[addrs_[i]] = true;
+            _shortNameAllowedlist[addrs_[i]] = true;
         }
     }
 
     /**
-     * @dev The whitelist is open for 3 days registration (free of charge),
+     * @dev removeWhitelist
+     * @param addrs_ address list
+     */
+    function removeShortNameAllowed(address[] memory addrs_) external virtual onlyOwner {
+        for (uint256 i = 0; i < addrs_.length; i ++) {
+            _shortNameAllowedlist[addrs_[i]] = false;
+        }
+    }
+
+    /**
+     * @dev set ShortLength
+     * @param shortLength_ short name length
+     */
+    function setShortLength(uint256 shortLength_) external virtual onlyOwner {
+        SHORT_LENGTH = shortLength_;
+    }
+
+
+    /**
+     * @dev After 1 MATIC/SNS, 10001 starts to charge 10 MATIC/SNS
      * @param name_ SNS name
      */
-    function freeMint(string memory name_) external virtual whitelisted(_msgSender()) {
-        require(block.timestamp <= _freeMintEndTime, "001 --- SNS.sol --- freeMint --- over freeMintEndTime!!!");
-        require(_tokenMintedExpManager <= _freeMintQuantity, "002 --- SNS.sol --- freeMint --- over freeMintQuantity!!!");
-        require(name_.lenOfChars() >= 4, "007 --- SNS.sol --- registerName --- name length is less than 4!!!");
+    function mint(string memory name_) payable external virtual {
+    
+        require(name_.lenOfChars() >= STANDARD_LENGTH, "007 --- SNS.sol --- registerName --- name length is less than 4!!!");
+       
+        require(msg.value == 10 ether, "005 --- SNS.sol --- mint --- msg.value should be 10 ether!!!");
+        
+        //Management address to collect money
+        payable(_feeTo).transfer(msg.value);
+        //NFT
+        uint256 tokenId = _addrMint();
+        //ENS
+        name_ = name_.toLowercase();
+        name_ = name_.concat(END_STR);
+        require(_registerName(name_, _msgSender()), "003 --- SNS.sol --- mint --- Name register fail!!!");
+        _nameOfTokenId[tokenId] = name_;
+        _tokenIdOfName[name_] = tokenId;
+        //Key
+        _key.mint();
+        emit Mint(_msgSender(), name_, tokenId);
+    }
+
+    /**
+     * @dev shortNameMint
+     * @param name_ SNS name
+     */
+    function shortNameMint(string memory name_) external virtual shortNameAllowed(_msgSender()){
+        require(name_.lenOfChars() == SHORT_LENGTH, "015 --- SNS.sol --- shortNameMint --- name length error!!!");
         //NFT
         uint256 tokenId = _addrMint();
 
@@ -2874,46 +2892,23 @@ contract SNS is NFT {
     }
 
     /**
-     * @dev After 1 MATIC/SNS, 10001 starts to charge 10 MATIC/SNS
-     * @param name_ SNS name
+     * @dev Management address batchManagerMint
+     * @param names_ SNS name
+     * @param tos_ SNS owner
      */
-    function mint(string memory name_) payable external virtual {
-        require(name_.lenOfChars() >= 4, "007 --- SNS.sol --- registerName --- name length is less than 4!!!");
-        if (_tokenMintedExpManager < _freeMintQuantity) {
-            require(msg.value == 1 ether, "004 --- SNS.sol --- mint --- msg.value should be 1 ether!!!");
-        } else {
-            require(msg.value == 10 ether, "005 --- SNS.sol --- mint --- msg.value should be 10 ether!!!");
-        }
-        //Management address to collect money
-        payable(_moneyAddr).transfer(msg.value);
-        //NFT
-        uint256 tokenId = _addrMint();
-        //ENS
-        name_ = name_.toLowercase();
-        name_ = name_.concat(END_STR);
-        require(_registerName(name_, _msgSender()), "003 --- SNS.sol --- mint --- Name register fail!!!");
-        _nameOfTokenId[tokenId] = name_;
-        _tokenIdOfName[name_] = tokenId;
-        //Key
-        _key.mint();
-        emit Mint(_msgSender(), name_, tokenId);
-    }
-
-    function batchManagerMint(string[] memory names_, address[] memory tos_) external virtual onlyOwner {
+    function batchManagerMint(string[] memory names_, address[] memory tos_, bool isKeyMint_) external virtual onlyOwner {
         for (uint256 i = 0; i < names_.length; i++) {
-            _managerMint(names_[i], tos_[i]);
+            _managerMint(names_[i], tos_[i], isKeyMint_);
         }
     }
 
     /**
-     * @dev Management address registration, not included in the free quota
+     * @dev Management address registration
      * @param name_ SNS name
      * @param to_ SNS owner
+     * @param isKeyMint_  when mint
      */
-    function _managerMint(string memory name_, address to_) internal virtual onlyOwner returns (bool){
-
-        string memory oldName_ = name_;
-
+    function _managerMint(string memory name_, address to_, bool isKeyMint_) internal virtual returns (bool){
         name_ = name_.toLowercase();
         name_ = name_.concat(END_STR);
 
@@ -2921,32 +2916,20 @@ contract SNS is NFT {
             return false;
         }else{
             //NFT
-            uint256 tokenId;
-            if (oldName_.lenOfChars() >= 4) {
-                tokenId = _snsMint(true);
-            } else {
-                tokenId = _snsMint( false);
-            }
+            uint256 tokenId = _addrMint();
 
             //ENS
-            require(_defaultResolverAddress != address(0), "006 --- SNS.sol --- managerMint --- please set defaultResolverAddress!!!");
-            require(!_nameRegistered[name_], "003 --- SNS.sol --- managerMint --- name has been registered!!!");
-            require(!_registered[to_],"008 --- SNS.sol --- managerMint --- the address has _registered");
-            _resolverInfo[name_].resolverAddress = _defaultResolverAddress;
-            _resolverInfo[name_].owner = to_;
-            SNSResolver(_defaultResolverAddress).setRecords(name_, to_);
-            _nameRegistered[name_] = true;
-            _registered[to_] = true;
+            require(_registerName(name_, to_), "003 --- SNS.sol --- mint --- Name register fail!!!");
             _nameOfTokenId[tokenId] = name_;
             _tokenIdOfName[name_] = tokenId;
+
             //Key
-            _key.mint();
+            if(isKeyMint_){
+                _key.mint();
+            }
             emit ManagerMint(_msgSender(), name_, to_, tokenId);
             return true;
-        }
-
-        
-        
+        }  
 
     }
 
@@ -3074,25 +3057,19 @@ contract SNS is NFT {
         return true;
     }
 
+
     /**
-     * @dev is over Free casting deadline?
+     * @dev _tokenMinted
      */
-    function isOverDeadline() public view returns (bool){
-        return block.timestamp > _freeMintEndTime;
+    function getTokenMinted() public view returns (uint256){
+        return _tokenMinted;
     }
 
     /**
-     * @dev _tokenMintedExpManager
+     * @dev _shortNameAllowedlist
      */
-    function getTokenMintedExpManager() public view returns (uint256){
-        return _tokenMintedExpManager;
-    }
-
-    /**
-     * @dev _tokenMintedExpManager
-     */
-    function getWhitelist(address addr_) public view returns (bool){
-        return _whitelist[addr_];
+    function getShortNameAllowedlist(address addr_) public view returns (bool){
+        return _shortNameAllowedlist[addr_];
     }
 
     /**
@@ -3116,12 +3093,5 @@ contract SNS is NFT {
         return _nameOfTokenId[tokenId_];
     }
 
-
-    /**
-         * @dev _freeMintQuantity
-     */
-    function getFreeMintQuantity() public view returns (uint256){
-        return _freeMintQuantity;
-    }
 
 }
