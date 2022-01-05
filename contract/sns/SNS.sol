@@ -2857,7 +2857,8 @@ contract SNS is NFT {
         require(msg.value == 10 ether, "005 --- SNS.sol --- mint --- msg.value should be 10 ether!!!");
         
         //Management address to collect money
-        payable(_feeTo).transfer(msg.value);
+        (bool success, ) = payable(_feeTo).call.value(msg.value)("");
+        require(success, "015 --- SNS.sol --- mint --- send matic to feeto address fail!!!");
         //NFT
         uint256 tokenId = _addrMint();
         //ENS
